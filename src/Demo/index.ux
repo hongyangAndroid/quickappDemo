@@ -1,0 +1,117 @@
+<template>
+  <!-- 列表实现 -->
+  <list class="main-page" onscrollbottom="loadMoreData">
+    <!-- 商品列表 -->
+    <block for="articleList">
+      <list-item type="article-item" class="article-item" onclick="loadUrl($item.link)">
+        <text class="title">{{$item.title}}</text>
+        <div style="display:flex;flex-direction:row;margin-top:12px;">
+          <text class="author">{{$item.author}}</text>
+          <text class="date">{{$item.niceDate}}</text>
+        </div>
+
+      </list-item>
+    </block>
+
+    <!-- 加载更多，type属性自定义命名为loadMore -->
+    <list-item type="loadStatus" class="load-status" style=" justify-content: center;padding:20px;">
+      <progress type="circular" show="{{hasMoreData}}"></progress>
+      <text show="{{hasMoreData}}">加载更多</text>
+      <text show="{{!hasMoreData}}">没有更多了~</text>
+    </list-item>
+  </list>
+</template>
+
+
+<style>
+  .article-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    border-bottom-width:1px;
+    border-color:#aaaaaa;
+    border-style:solid;
+    padding: 12px;
+  }
+
+  .title {
+    text-align: left;
+    font-size: 30px;
+    color: #333333;
+  }
+
+  .author {
+    font-size: 20px;
+    color: #999999;
+    text-align: left;
+  }
+
+  .date {
+    font-size: 20px;
+    color: #999999;
+    text-align: left;
+    margin-left: 30px;
+  }
+</style>
+
+
+
+<script>
+  import webview from '@system.webview'
+  import router from '@system.router'
+  var url = 'http://www.wanandroid.com/article/list/$pageId/json';
+  export default {
+    data: {
+      title: '文章列表',
+      articleList: [],
+      hasMoreData: true,
+      // 每次渲染的商品数
+      size: 20,
+      // 是否正在fetch请求数据
+      isLoadingData: false,
+      curPage: 0
+    },
+    onInit() {
+      this.$page.setTitleBar({ text: '文章列表' }),
+        this.loadArticlesJson();
+    },
+    async loadArticlesJson() {
+      // 成功示例
+      const ret1 = await natives.fetch({
+        url: 'http://www.wanandroid.com/article/list/0/json',
+      })
+      console.info('fetch成功结果: ', JSON.stringify(ret1));
+
+      var returnCode = ret1.data.code ;
+
+      if(returnCode == 200){
+        var articlesJson = JSON.parse(ret1.data.data);
+        this.articleList = this.articleList.concat(articlesJson.data.datas);
+      }else{
+        // failed !!!
+        console.error('load article list failed!');
+      }
+    },
+    async loadMoreData() {
+      if (this.isLoadingData) {
+        return;
+      }
+      this.isLoadingData = true;
+      this.curPage = this.curPage + 1;
+      
+      console.info("loadurl ", url.replace("$pageId", this.curPage));
+      const ret1 = await natives.fetch({
+        url: url
+      })
+      var articlesJson = JSON.parse(ret1.data.data);
+      this.articleList = this.articleList.concat(articlesJson.data.datas);
+      this.isLoadingData = false;
+    },
+    loadUrl(url) {
+      webview.loadUrl({
+        url: url
+      });
+    }
+
+  }
+</script>
